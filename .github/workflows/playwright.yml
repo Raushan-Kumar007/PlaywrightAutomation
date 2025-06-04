@@ -21,7 +21,7 @@ jobs:
         run: |
           echo "SF_CLIENT_ID=${{ secrets.SF_CLIENT_ID }}" >> $GITHUB_ENV
           echo "SF_USERNAME=${{ secrets.SF_USERNAME }}" >> $GITHUB_ENV
-          echo "${{ secrets.SF_JWT_PRIVATE_KEY }}" > ./server.key
+          echo "${{ secrets.SERVER_KEY }}" > ./server.key
         shell: bash
 
       - name: Install dependencies
