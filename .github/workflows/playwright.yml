@@ -1,41 +1,47 @@
-name: Playwright Tests
+name: Playwright CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
-  test:
-    timeout-minutes: 60
+  playwright-run:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - tests/login.spec.ts
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-
-      - name: Set up environment variables
-        run: |
-          echo "SF_CLIENT_ID=${{ secrets.SF_CLIENT_ID }}" >> $GITHUB_ENV
-          echo "SF_USERNAME=${{ secrets.SF_USERNAME }}" >> $GITHUB_ENV
-          echo "${{ secrets.SERVER_KEY }}" > ./server.key
-        shell: bash
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Restore server.key
+        run: |
+          echo "${{ secrets.SERVER_KEY }}" > server.key
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      - name: Run Playwright Tests - ${{ matrix.spec }}
+        run: npx playwright test ${{ matrix.spec }}
+        env:
+          SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
 
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+      - name: Upload Report on Failure - ${{ matrix.spec }}
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.spec }}
           path: playwright-report/
-          retention-days: 30
