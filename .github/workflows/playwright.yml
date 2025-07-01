@@ -40,23 +40,24 @@ jobs:
           SF_USERNAME: ${{ secrets.SF_USERNAME }}
 
       - name: Sanitize spec name for artifacts
-        id: sanitize
-        run: echo "sanitized_name=$(echo '${{ matrix.spec }}' | sed 's#[/: ]#-#g')" >> $GITHUB_OUTPUT
+        run: |
+          sanitized_name=$(echo "${{ matrix.spec }}" | sed 's#[/: ]#-#g')
+          echo "sanitized_name=$sanitized_name" >> $GITHUB_ENV
 
       - name: Zip Test Results (Optional, but safer)
         if: failure()
-        run: zip -r test-results-${{ steps.sanitize.outputs.sanitized_name }}.zip test-results || true
+        run: zip -r test-results-${{ env.sanitized_name }}.zip test-results || true
 
       - name: Upload Playwright Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ steps.sanitize.outputs.sanitized_name }}
+          name: playwright-report-${{ env.sanitized_name }}
           path: playwright-report/
 
       - name: Upload Zipped Test Results on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ steps.sanitize.outputs.sanitized_name }}
-          path: test-results-${{ steps.sanitize.outputs.sanitized_name }}.zip
+          name: test-results-${{ env.sanitized_name }}
+          path: test-results-${{ env.sanitized_name }}.zip
