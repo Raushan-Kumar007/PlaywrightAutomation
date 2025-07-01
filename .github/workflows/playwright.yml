@@ -28,8 +28,7 @@ jobs:
         run: npm ci
 
       - name: Restore server.key
-        run: |
-          echo "${{ secrets.SERVER_KEY }}" > server.key
+        run: echo "${{ secrets.SERVER_KEY }}" > server.key
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
@@ -40,12 +39,24 @@ jobs:
           SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
           SF_USERNAME: ${{ secrets.SF_USERNAME }}
 
-      - name: Set sanitized artifact name
-        run: echo "SANITIZED_NAME=$(echo '${{ matrix.spec }}' | sed 's#/#-#g')" >> $GITHUB_ENV
+      - name: Sanitize spec name for artifacts
+        id: sanitize
+        run: echo "sanitized_name=$(echo '${{ matrix.spec }}' | sed 's#[/: ]#-#g')" >> $GITHUB_OUTPUT
 
-      - name: Upload Report on Failure
+      - name: Zip Test Results (Optional, but safer)
+        if: failure()
+        run: zip -r test-results-${{ steps.sanitize.outputs.sanitized_name }}.zip test-results || true
+
+      - name: Upload Playwright Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ env.SANITIZED_NAME }}
+          name: playwright-report-${{ steps.sanitize.outputs.sanitized_name }}
           path: playwright-report/
+
+      - name: Upload Zipped Test Results on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ steps.sanitize.outputs.sanitized_name }}
+          path: test-results-${{ steps.sanitize.outputs.sanitized_name }}.zip
