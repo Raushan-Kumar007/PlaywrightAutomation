@@ -14,6 +14,7 @@ jobs:
       matrix:
         spec:
           - tests/login.spec.ts
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,9 +40,12 @@ jobs:
           SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
           SF_USERNAME: ${{ secrets.SF_USERNAME }}
 
-      - name: Upload Report on Failure - ${{ matrix.spec }}
+      - name: Set sanitized artifact name
+        run: echo "SANITIZED_NAME=$(echo '${{ matrix.spec }}' | sed 's#/#-#g')" >> $GITHUB_ENV
+
+      - name: Upload Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.spec }}
+          name: playwright-report-${{ env.SANITIZED_NAME }}
           path: playwright-report/
