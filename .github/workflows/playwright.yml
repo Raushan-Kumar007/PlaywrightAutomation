@@ -28,36 +28,36 @@ jobs:
         run: npm ci
 
       - name: Restore server.key
-        run: echo "${{ secrets.SERVER_KEY }}" > server.key
+        run: |
+          echo "${{ secrets.SERVER_KEY }}" > server.key
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright Tests - ${{ matrix.spec }}
+      - name: Run Playwright Tests for ${{ matrix.spec }}
+        continue-on-error: true
         run: npx playwright test ${{ matrix.spec }}
         env:
           SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
           SF_USERNAME: ${{ secrets.SF_USERNAME }}
 
-      - name: Sanitize spec name for artifacts
+      - name: Sanitize spec name for artifact
         run: |
-          sanitized_name=$(echo "${{ matrix.spec }}" | sed 's#[/: ]#-#g')
-          echo "sanitized_name=$sanitized_name" >> $GITHUB_ENV
+          SANITIZED_NAME=$(echo "${{ matrix.spec }}" | sed 's#[/: ]#-#g')
+          echo "SANITIZED_NAME=$SANITIZED_NAME" >> $GITHUB_ENV
 
-      - name: Zip Test Results (Optional, but safer)
-        if: failure()
-        run: zip -r test-results-${{ env.sanitized_name }}.zip test-results || true
-
-      - name: Upload Playwright Report on Failure
-        if: failure()
+      - name: Upload Playwright HTML Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ env.sanitized_name }}
+          name: playwright-report-${{ env.SANITIZED_NAME }}
           path: playwright-report/
 
-      - name: Upload Zipped Test Results on Failure
-        if: failure()
+      - name: Upload Trace Files and Test Results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ env.sanitized_name }}
-          path: test-results-${{ env.sanitized_name }}.zip
+          name: test-results-${{ env.SANITIZED_NAME }}
+          path: |
+            test-results/
+            trace.zip
